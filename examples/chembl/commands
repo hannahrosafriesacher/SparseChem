@@ -1,0 +1,18 @@
+#p!/bin/bash
+set -e
+
+#ProbCal_plots_utils
+#python ProbCal_plots_utils.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --y_hat predictions/h2000_ldo0.7_wdle-05_lr0.001_lrsteps10_ep20_fval1_fte0-class.npy --predict_fold 1 --TargetID 1482
+
+#ProbCal_BoxPlot
+python ProbCal_BoxPlot.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy  --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --y_hat predictions/h2000_ldo0.7_wdle-05_lr0.001_lrsteps10_ep20_fval1_fte0-class.npy --predict_fold 0 --targetID 2127
+
+#python ProbCal_DotPlot
+#python ProbCal_DotPlot.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --targetID 1482
+
+#python ProbCal_ViolinPlot.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --predict_fold 0 --targetID 1482
+
+#python ProbCal_platt_BoxPlot.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --y_hat_platt predictions/plattScaling/h2000_ldo0.7_wdle-05_lr0.001_lrsteps10_ep20_fva1_fte0_testfold-class_plattScaling_TargetID1482.npy --predict_fold 0 --targetID 1482
+
+#python ProbCal_platt_ViolinPlot.py --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy     --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --predict_fold 0 --targetID 1482
+

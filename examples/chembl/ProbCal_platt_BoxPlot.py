@@ -17,21 +17,18 @@ parser.add_argument("--y_class", "--y", "--y_classification", help="Sparse patte
 parser.add_argument("--y_hat_platt", help="predicted Values after platt scaling", type=str, default=None)
 parser.add_argument("--folding", help="Folds for rows of y, optional. Needed if only one fold should be predicted.", type=str, required=False)
 parser.add_argument("--predict_fold", help="One or more folds, integer(s). Needed if --folding is provided.", nargs="+", type=int, required=False)
-parser.add_argument("--conf", help="Model conf file (.json or .npy)", type=str, required=True)
 parser.add_argument("--targetID", help="TargetID", type=int, required=True)
+args = parser.parse_args()
 
 #load data
-args = parser.parse_args()
-conf = sc.load_results(args.conf, two_heads=True)["conf"]
 TargetID=args.targetID
 y_class = sc.load_sparse(args.y_class)
 y_hat_platt=sc.load_sparse(args.y_hat_platt)
 
 #select correct fold for y_class
-if args.folding is not None:
-    folding = np.load(args.folding) if args.folding else None
-    keep    = np.isin(folding, args.predict_fold)
-    y_class = sc.keep_row_data(y_class, keep) 
+folding = np.load(args.folding) if args.folding else None
+keep    = np.isin(folding, args.predict_fold)
+y_class = sc.keep_row_data(y_class, keep) 
 
 #Sparse Matrix to csc-fil
 y_hat_platt=y_hat_platt.A
@@ -46,10 +43,10 @@ y_class_selected=y_class_selected.A.flatten()
 #Split array according to condition
 def split(arr, cond):
     return arr[cond]
-#Calculate positive 
+#Calculate positive ratio
 def posRatio(arr):
     return (arr==1).sum()/arr.shape[0]
-#split into positives and negatives in each class in the y_class file
+#split into positives and negatives 
 def selectPosNeg(arr):
     pos=np.count_nonzero(arr==1)
     neg=np.count_nonzero(arr==-1)
@@ -84,7 +81,6 @@ for k in range(10):
 
 # Confidence Intervals for Positive ratio
 # iterate through classes and calculate Variance of the mean
-print('NumPos', NumPos, 'NumNeg', NumNeg)
 Q1=[]
 Q3=[]
 Me=[]
@@ -115,12 +111,12 @@ for i in range(10):
     stats_box.append(Stats)
     i+=1
 
-#Prepare for Plotting
+#Specify labels for X-axis
 X_axis_bar= ['0.0-0.1', '0.1-0.2', '0.2-0.3', '0.3-0.4', '0.4-0.5','0.5-0.6', '0.6-0.7', '0.7-0.8', '0.8-0-9', '0.9-1.0'] 
  
-#Plot Boxplot with a Whiskers Blot for each 'probability class'
 fig, axs=plt.subplots(2, 1, figsize=(9,9))
 
+# Boxplot for each 'probability class'
 axs[0].bxp(stats_box, showfliers=False, meanline=True)
 axs[0].set_xticklabels(X_axis_bar)
 axs[0].set_title('Positive Ratio', fontsize='x-large')
@@ -128,7 +124,7 @@ axs[0].set_xlabel('predicted activity')
 axs[0].set_ylabel('positive ratio')
 axs[0].axline([1,0.05], [10,0.95], color='r', linestyle='--')
 
-#Plot number of compounds of eac 'class'
+#Plot number of compounds of each 'class'
 heights, bins= np.histogram(np.transpose(y_hat_platt))
 axs[1].bar(bins[:-1], heights/heights.sum(), align='center', tick_label=X_axis_bar, width=bins[1]-bins[0])
 axs[1].set_title('Counts', fontsize='x-large')

@@ -1,0 +1,10 @@
+#p!/bin/bash
+set -e
+
+##predicting 
+##run train.py for specified files
+for i in {001..100}; do
+
+python ProbCal_platt.py --y_hat_validation predictions/repeats/valFold_Platt/val_sc_repeat"$i"_h2000_ldo0.7_wd1e-05_lr0.001_lrsteps10_ep20_fva1_fte0-class.npy-class.npy --y_hat_test predictions/repeats/sc_repeat"$i"_h2000_ldo0.7_wd1e-05_lr0.001_lrsteps10_ep20_fva1_fte0-class.npy --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --fold_va 1  --TargetID 1482
+
+done

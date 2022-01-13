@@ -1,0 +1,37 @@
+#p!/bin/bash
+##This file ...
+##1. obtaines models for each combination of HyperParams specified below
+##2. retrieves the maximum AUCORC/AUCPR and the last(=average)AUCROC/AUCPR from the json files of the generated models
+##3. retrieves the Hyperparamters that result in the highest AUCROC/AUCPR values
+set -e
+		
+##ad 1): generates Models for each combinations of HyperParameters
+##Empty file results_hyperParams
+>./AUCROC_AUCPR/results_extract_aucroc_aucpr
+
+##Specifying Hyperparams
+hiddenSizes=(1500 2000 3000)
+lastDropout=(0.5 0.6 0.7)
+weightDecay=(0.0 1e-05)
+
+
+##creating jason/pt files for each possible Hyperparameter combination
+##run train.py, store files to models/
+#for i in "${hiddenSizes[@]}"; do for j in "${lastDropout[@]}"; do for k in "${weightDecay[@]}"; do
+#python train.py --x /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_X.npy --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --hidden_sizes $i --weight_decay $k --last_dropout $j --fold_va 1 --fold_te 0 
+#done
+#done
+#done
+
+##ad 2): retrieves the maximum AUCORC/AUCPR and the last(=average)AUCROC/AUCPR from the json files
+## run aucroc_aucpr.py, store results to results_hyperParams
+for i in "${hiddenSizes[@]}"; do for j in "${lastDropout[@]}"; do for k in "${weightDecay[@]}"; do
+echo "$i $j $k " >>./AUCROC_AUCPR/results_extract_aucroc_aucpr
+python AUCROC_AUCPR/extract_aucroc_aucpr.py --file ~/git/SparseChem/examples/chembl/models/sc_run_h"$i"_ldo"$j"_wd"$k"_lr0.001_lrsteps10_ep20_fva1_fte0.json >>./AUCROC_AUCPR/results_extract_aucroc_aucpr
+done
+done
+done
+
+##ad 3): obtaines Hyperparams that result in highest AUCROC/AUCPR
+##run aucroc_aucpr_indf.py, print results
+python AUCROC_AUCPR/findHyperparams_aucroc_aucpr.py
