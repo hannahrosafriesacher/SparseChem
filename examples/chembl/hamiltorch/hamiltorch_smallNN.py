@@ -1,3 +1,4 @@
+#HMC on small NN
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -8,15 +9,16 @@ import matplotlib.pyplot as plt
 
 os.environ['CUDA_VISIBLE_DEVICES']='2'
 
-
+#Test set
 x_train=torch.rand(100,1)*5-2
 y_train=torch.sin(x_train*3)/x_train
 device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+#Training set
 x_test=torch.linspace(-2, 3, 100).unsqueeze(dim=1)
 y_test=torch.sin(x_test*3)/x_test
 
-
+#train smallNN
 class Net(nn.Module):
     def __init__(self, hidden_size):
         super(Net,self).__init__()
@@ -35,6 +37,7 @@ class Net(nn.Module):
 hidden_size=10
 net=Net(hidden_size=hidden_size)
 
+#train HMC
 hamiltorch.set_random_seed(123)
 params_init=hamiltorch.util.flatten(net).to(device).clone()
 step_size=0.001
@@ -48,11 +51,14 @@ print(params_hmc)
 
 params_hmc_gpu=[ll.to(device) for ll in params_hmc[1:]]
 
+#predict test set
 predictions, log_probs=hamiltorch.predict_model(net, x=x_test.to(device), y=y_test.to(device), samples=params_hmc_gpu, model_loss=model_loss, tau_out=tau_out)
 predictions=predictions.detach().cpu()
 mean=predictions.mean(0).squeeze()
 std=predictions.std(0).squeeze()
 
+
+#plot results
 plt.plot(x_train, y_train, 'or')
 plt.plot(x_test, mean, '-', color='grey')
 
