@@ -1,0 +1,31 @@
+#p!/bin/bash
+set -e
+		
+##Specifying Hyperparams
+#variance=(0.0666666666666667 0.08 0.1 0.13333333333 0.2 0.5)
+tau_list=(1.0 3.0 5.0 7.0 9.0 10.0)
+StepsPerSample=(100 200 300)
+stepsize=(0.01 0.05 0.1)
+
+
+##keeping lambda constant
+#y=0
+#for i in "${variance[@]}"; do
+#python hamiltorch_smallNN.py --variance "${variance[y]}" --tau_list "${tau_list[y]}" --stepsize 0.01 --StepsPerSample 100
+#((y=y+1))
+#done
+
+
+##keeping tau_out constant
+#for m in "${tau_list[@]}"; do
+#python hamiltorch_smallNN.py --variance 0.1 --tau_list $m --stepsize 0.01 --StepsPerSample 100
+#done
+
+
+##keeping tau_list, tau_out constant
+for n in "${StepsPerSample[@]}"; do for p in "${stepsize[@]}"; do for k in "${tau_list[@]}"; do
+#python hamiltorch_smallNN.py --stepsize $p --StepsPerSample $n
+python hamiltorch_smallNN_classification.py --tau_list $k --stepsize $p --StepsPerSample $n
+done
+done
+done

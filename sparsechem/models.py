@@ -41,7 +41,7 @@ class SparseLinear(torch.nn.Module):
     """
     def __init__(self, in_features, out_features, bias=True):
         super(SparseLinear, self).__init__()
-        self.weight = nn.Parameter(torch.randn(in_features, out_features) / math.sqrt(out_features))
+        self.weight = nn.Parameter((torch.randn(in_features, out_features) / math.sqrt(out_features)).double())
         if bias:
             self.bias = nn.Parameter(torch.zeros(out_features))
         else:

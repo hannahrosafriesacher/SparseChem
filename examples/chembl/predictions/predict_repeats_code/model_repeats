@@ -1,0 +1,10 @@
+#p!/bin/bash
+set -e
+
+##predicting 
+##run train.py for specified files
+for i in {001..100}; do
+
+python train.py --x /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_X.npy --y_class /home/aarany/git/chembl-pipeline/output/chembl_29/chembl_29_thresh.npy --folding /home/aarany/git/chembl-pipeline/output/chembl_29/folding.npy --hidden_sizes 1000 --last_dropout 0.9 --weight_decay 1e-4 --fold_te 0 --fold_va 1 --output_dir models/model_logLikelihood/repeats --prefix repeat_"$i"
+
+done
