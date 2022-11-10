@@ -53,18 +53,29 @@ burn_in=args.burn_in
 tau_out=args.tau_out
 model_loss='binary_class_linear_output'
 
+#afterBurnin
+burn_in_after=100
+#load model parameters
+filename='Params_stepSize1e-07_numSteps20000_burnIn0_numSamples200_hiddenSize5_numTraining5595_tauOut1.0_tauList0.1_reducedX_10000.npy'
+file='/home/rosa/git/SparseChem/examples/chembl/hamiltorch/parameters_HMC/Target1482/'+filename
+#load Parameters
+params=np.load(file)
+print(params.shape)
+params_after_burn_in=params[burn_in_after:]
+print(params_after_burn_in.shape)
+params_hmc_gpu=torch.tensor(params_after_burn_in).to(device)
+
+
+
 #load data and files
 #ecfp     = sc.load_sparse(args.x)
 ecfp=scipy.sparse.csr_matrix(np.load(args.x, allow_pickle=True))
 y_class  = sc.load_sparse(args.y_class)
 y_regr   = sc.load_sparse(args.y_regr)
 y_censor = sc.load_sparse(args.y_censor)
-print('ECFP shape:', ecfp.shape)
-print('Y_class shape:', y_class.shape)
 
 folding = np.load(args.folding)
 assert ecfp.shape[0] == folding.shape[0], "x and folding must have same number of rows"
-print('folding:', folding.shape)
 
 if y_regr is None:
     y_regr  = scipy.sparse.csr_matrix((ecfp.shape[0], 0))
@@ -118,26 +129,13 @@ y_test=y_class_te.todense()
 
 #split x into Train and Test dataset
 x_train=ecfp[idx_tr].todense()
-#x_test=sc.load_sparse(args.x)[idx_te]
-#idx=list(x_train.nonzero())
-#data=x_train.data
-#x_train=torch.sparse_coo_tensor(idx, data, size=[x_train.shape[0], x_train.shape[1]])
-#batch size
-#batch_size  = int(np.ceil(args.batch_ratio * idx_tr.shape[0]))
-#num_int_batches = 1
-
-#if args.internal_batch_max is not None:
-#    if args.internal_batch_max < batch_size:
-#        num_int_batches = int(np.ceil(batch_size / args.internal_batch_max))
-#        batch_size      = int(np.ceil(batch_size / num_int_batches))
-#print(f"#internal batch size:   {batch_size}")
+x_test=scipy.sparse.csr_matrix(np.load(args.x, allow_pickle=True))[idx_te].todense()
 
 
 #To Torch tensor
 x_trainTorch_unclipped= torch.tensor(x_train).to(device)
 y_trainTorch=torch.tensor(y_train).to(device)
 x_trainTorch=torch.clip(x_trainTorch_unclipped, min=0, max=1)
-
 
 #MODEL
 num_input_features=x_trainTorch.shape[1]
@@ -160,42 +158,30 @@ class Net(torch.nn.Module):
     def forward(self, x):
         return self.net(x)
 net=Net(hidden_sizes=args.hidden_sizes, input_features=num_input_features, output_features=num_output_features)
-
-#obtain tau_list
-for w in net.parameters():
-    tau_list = []
-    tau_list.append(tau)
-tau_list = torch.tensor(tau_list).to(device)
-
-#train HMC
-hamiltorch.set_random_seed(123)
-params_init=hamiltorch.util.flatten(net).to(device).clone() 
-params_hmc=hamiltorch.sample_model(net, x=x_trainTorch, y=y_trainTorch, params_init=params_init,  num_samples=num_samples, step_size=step_size, num_steps_per_sample=num_steps_per_sample, tau_out=tau_out, model_loss=model_loss, burn=burn_in, tau_list=tau_list)
-params_hmc_gpu=[ll.to(device) for ll in params_hmc[1:]]
-
-#save model parameters
-params_list=[]
-for i in range(len(params_hmc_gpu)):
-    x=params_hmc_gpu[i].cpu().numpy()
-    params_list.append(x)
-params=np.array(params_list)
-np.save('/home/rosa/git/SparseChem/examples/chembl/hamiltorch/HMC_plots/SparseChem_classification/Target1482/Params_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'_reducedX_10000.npy', params)
-
 #-------------------------------------------------------------------------------------------
-'''# predict with HMC model
+# predict with HMC model
+
 
 x_testTorch=torch.tensor(x_test).to(device)
 y_testTorch=torch.tensor(y_test).to(device)
+#pred_list, log_prob_list=hamiltorch.predict_model(net, x=x_testTorch, y=y_testTorch, samples=params_hmc_gpu, model_loss=model_loss, tau_out=tau_out)
 pred_list, log_prob_list=hamiltorch.predict_model(net, x=x_trainTorch, y=y_trainTorch, samples=params_hmc_gpu, model_loss=model_loss, tau_out=tau_out)
 pred_list=pred_list.detach().cpu()
-print(pred_list.size())
-print(type(pred_list))
+print(y_test.shape, x_test.shape)
+print(pred_list.shape)
 
 y_testTorch=y_testTorch.cpu()
-y_trainTorch=y_trainTorch.cpu()'''
+y_trainTorch=y_trainTorch.cpu()
 
-#---------------------------------------------------------------------------------------
-'''#Accuracy and Negative Loss for each sample:
+print(pred_list.shape)
+pred_list_ensemble=torch.mean(torch.sigmoid(pred_list), 0)
+pred_list_ensemble_np=pred_list_ensemble.numpy()
+print(pred_list_ensemble_np.shape)
+
+#np.save('/home/rosa/git/SparseChem/examples/chembl/predictions/HMC_singleTask/Target1482/hmc_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in_after)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'_fold_va'+str(args.fold_va)+'_fold_te'+str(args.fold_te)+'_predictionOnTrainingFold.npy', pred_list_ensemble_np)
+np.save('/home/rosa/git/SparseChem/examples/chembl/predictions/HMC_singleTask/Target1482/hmc_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in_after)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'_fold_va'+str(args.fold_va)+'_fold_te'+str(args.fold_te)+'.npy', pred_list_ensemble_np)
+'''#-----------------------------------------------------------------------------------------------
+#Accuracy and Negative Loss for each sample:
 acc_mean = torch.zeros( len(pred_list)-1)
 acc_sample= torch.zeros( len(pred_list)-1)
 loss = torch.zeros( len(pred_list)-1)
@@ -208,21 +194,22 @@ for s in range(1, len(pred_list)):
     pred_mean=torch.where(torch.sigmoid(pred_list[:s]).mean(0)<0.5, 0, 1).float()
     pred_now_sig=torch.round(torch.sigmoid(pred_list[s]))
     #boolean array: does label correspond to true value in y_test?
-    bo_mean=(pred_mean==y_trainTorch).flatten()
-    bo_sample=(pred_now_sig==y_trainTorch).flatten()
+    print(pred_mean.shape, y_testTorch.shape)
+    bo_mean=(pred_mean==y_testTorch).flatten()
+    bo_sample=(pred_now_sig==y_testTorch).flatten()
     #acc  = TP+TN (#correctPred)/ TP+TN+FP+FN (all datapoints in )         
-    acc_mean[s-1]=bo_mean.sum().float()/y_trainTorch.shape[0]
-    acc_sample[s-1]=bo_sample.sum().float()/y_trainTorch.shape[0]
+    acc_mean[s-1]=bo_mean.sum().float()/y_testTorch.shape[0]
+    acc_sample[s-1]=bo_sample.sum().float()/y_testTorch.shape[0]
 
     #LOSS
     pred_now=pred_list[s]
     #calculate loss for current s
-    loss[s-1]=criterion(pred_now, y_trainTorch)
+    loss[s-1]=criterion(pred_now, y_testTorch)
 
 #AUC AND LOSS PLOT
 fig, axs=plt.subplots(2, 1, figsize=(9,9))
 fig.suptitle('NumOfSamples: ' +str(num_samples) + '/StepsPerSample: ' + str(num_steps_per_sample) + '/Stepsize: ' + str(step_size) + '\n BurnIn: ' + str(burn_in) + '/tau_I: ' +str(tau))
-lim=num_samples-burn_in
+lim=num_samples-burn_in_after
 axs[0].plot(acc_mean)
 axs[0].plot(acc_sample)
 axs[0].grid()
@@ -237,49 +224,5 @@ axs[1].set_xlabel('Iteration number')
 axs[1].set_ylabel('Negative Log-Likelihood')
 axs[1].set_xlim(0,lim)
 axs[1].tick_params(labelsize=15)
-plt.savefig('/home/rosa/git/SparseChem/examples/chembl/hamiltorch/HMC_plots/SparseChem_classification/Target1482/AUC_LOSS_plot_OnTrainingSet_SparseChem_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'.png')'''
+plt.savefig('/home/rosa/git/SparseChem/examples/chembl/hamiltorch/HMC_plots/SparseChem_classification/Target1482/AUC_LOSS_plot_OnTrainingSet_SparseChem_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in_after)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'.png')'''
 
-#-------------------------------------------------------------------------------------------
-'''#AUTOCORRELATION PLOT
-#function for calculating autocorrelation
-def autocorr(y, lag):
-    #Calculates autocorrelation coefficient for single lag value
-        
-    #y: array
-    #   Input time series array
-    #lag: int, default: 2 
-    #     'kth' lag value
-        
-    #Returns
-    #int: autocorrelation coefficient
-    y_bar =np.sum(y)/y.shape[0] #y_bar = mean of the time series y
-    denominator = sum((y - y_bar) ** 2) #sum of squared differences between y(t) and y_bar
-    numerator_p1 = y[lag:] - y_bar #y(t+k)-y_bar: difference between time series (from 'lag' till the end) and y_bar
-    numerator_p2 = y[:len(y)-lag] - y_bar #y(t)-y_bar: difference between time series (from the start till lag) and y_bar
-    numerator = sum(numerator_p1 * numerator_p2) #sum of y(t)-y_bar and y(t-k)-y_bar
-    return numerator/denominator
-
-
-#plotting autocorrelation of 10 randomly selected parameters
-index=np.random.choice(params.shape[1], 10, replace=False)
-
-#get list with autocorrelation values
-autocorr_whole=[]
-for l in range(index.shape[0]):
-    autocorr_list_now=[]
-    params_now=params[:, index[l]]
-    for i in range(0, params_now.shape[0]-1):
-        autocorr_list_now.append(autocorr(params_now, i))
-    autocorr_whole.append(autocorr_list_now)
-
-#plot autocorrelation values
-for j in range(len(autocorr_whole)):
-    plt.plot(range(0, len(autocorr_whole[j])),autocorr_whole[j], marker='o')
-plt.title('StepSize: ' + str(step_size) + '/ StepsPerSample: ' + str(num_steps_per_sample) + '/ HiddenSizes: ' + str(args.hidden_sizes))
-plt.xlabel('lag')
-plt.ylabel('autocorrelation')    
-plt.xlim([0,num_samples-burn_in])
-
-#save figure
-plt.savefig('/home/rosa/git/SparseChem/examples/chembl/hamiltorch/HMC_plots/SparseChem_classification/Target1482/Autocorr_stepSize'+str(step_size)+'_numSteps'+str(num_steps_per_sample)+'_burnIn'+str(burn_in)+'_numSamples'+str(num_samples)+'_hiddenSize'+str(args.hidden_sizes)+'_numTraining'+str(x_train.shape[0])+'_tauOut'+str(round(tau_out, 2))+'_tauList'+str(tau)+'.png')
-'''

@@ -3,25 +3,20 @@ import sparsechem as sc
 import numpy as np
 import argparse
 
-parser = argparse.ArgumentParser(description="Obtaining Histograms for Probability Calibration for singular Taget")
-parser.add_argument("--y_class", "--y", "--y_classification", help="Sparse pattern file for classification, optional. If provided returns predictions for given locations only (matrix market, .npy or .npz)", type=str, default=None)
-parser.add_argument("--y_hat", help="predicted Values", type=str, default=None)
-parser.add_argument("--folding", help="Folds for rows of y, optional. Needed if only one fold should be predicted.", type=str, required=False)
-parser.add_argument("--predict_fold", help="One or more folds, integer(s). Needed if --folding is provided.", nargs="+", type=int, required=False)
-args = parser.parse_args()
-
+predict_fold=0
 filename_y_class='/home/rosa/git/SparseChem/examples/chembl/files_data_folding_current/datafiles_hmc/y_1482_reduced.npy'
-filename_y_hat='/home/rosa/git/SparseChem/examples/chembl/predictions/model_SingleTask/SingleTask_1482_hiddenSizes_4_te_fold_0_lr_0.1_ep_50_batch_size200_class.npy'
+filename_y_hat='/home/rosa/git/SparseChem/examples/chembl/predictions/HMC_singleTask/Target1482/hmc_stepSize1e-07_numSteps20000_burnIn100_numSamples200_hiddenSize5_numTraining5595_tauOut1.0_tauList0.1_fold_va1_fold_te0.npy'
+#filename_y_hat='/home/rosa/git/SparseChem/examples/chembl/predictions/plattScaling/LargeModel_adam/h2000_ldo0.7_wdle-05_lr0.001_lrsteps10_ep20_fva1_fte0_testfold-class_plattScaling_TargetID1482.npy'
 filename_folding='/home/rosa/git/SparseChem/examples/chembl/files_data_folding_current/datafiles_hmc/folding_1482_reduced.npy'
 print('load_file------------')
 #load class file
 y_class=sc.load_sparse(filename_y_class)
-print(y_class.shape)
 y_hat=np.load(filename_y_hat)
-folding=np.load(args.folding)
+#y_hat=sc.load_sparse(filename_y_hat)
+folding=np.load(filename_folding)
 print('select_folds------------')
 #select fold for class file
-y_class=y_class[folding==args.predict_fold].todense()
+y_class=y_class[folding==predict_fold].todense()
 y_class[y_class==-1]=0
 #---------Some Useful Functions---------------
 #split array according to condition
@@ -60,10 +55,6 @@ i=0
 for j in range(10):
     clas.extend(split(y_class,np.logical_and(y_hat>=values[j], y_hat<values[j+1])).flatten())
     prob.append(split(y_hat,np.logical_and(y_hat>=values[j], y_hat<values[j+1])).flatten())
-    
-    print((split(y_class,np.logical_and(y_hat>=values[j], y_hat<values[j+1])).flatten()).shape)
-    print((split(y_hat,np.logical_and(y_hat>=values[j], y_hat<values[j+1])).flatten()).shape)
-
     j+=1
 #Obtain positive ratio (=acc calculated from true values) and 
 # probablity mean (=conf calculated from predictions) for each split
@@ -95,6 +86,9 @@ y_hat_split=np.array_split(y_hat_sorted, 10)
 y_class_split=np.array_split(y_class_sorted, 10)
 acc_ace=[]
 conf_acc=[]
+print(y_hat_sorted.shape)
+for i in y_class_split:
+    print(i.shape)
 
 #Obtain positive ratio (=acc calculated from true values) and 
 #probablity mean (=conf calculated from predictions) for each split

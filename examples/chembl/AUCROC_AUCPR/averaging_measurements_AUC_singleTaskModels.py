@@ -13,19 +13,20 @@ import os
 from scipy import sparse
 
 filename_y_class='/home/rosa/git/SparseChem/examples/chembl/files_data_folding_current/datafiles_hmc/y_1482_reduced.npy'
-filename_y_hat='/home/rosa/git/SparseChem/examples/chembl/predictions/model_SingleTask/SingleTask_1482_hiddenSizes_4_te_fold_0_lr_0.1_ep_50_batch_size200_class.npy'
+filename_y_hat='/home/rosa/git/SparseChem/examples/chembl/predictions/HMC_singleTask/Target1482/hmc_stepSize1e-07_numSteps20000_burnIn100_numSamples200_hiddenSize5_numTraining5595_tauOut1.0_tauList0.1_fold_va1_fold_te0.npy'
 filename_folding='/home/rosa/git/SparseChem/examples/chembl/files_data_folding_current/datafiles_hmc/folding_1482_reduced.npy'
 print('load_file------------')
 #load class file
-y_class=np.load(filename_y_class)
+y_class=sc.load_sparse(filename_y_class)
 print(y_class.shape)
 y_hat=np.load(filename_y_hat)
-
-print('select_folds------------')
+print(y_hat.shape)
+folding=np.load(filename_folding)
 #select fold for class file
-folding = np.load(filename_folding)
-keep    = np.isin(folding, 0)
-y_class = sc.keep_row_data(y_class, keep) 
+y_class=y_class[folding == 0].todense()
+print(y_hat.shape)
+y_class[y_class==-1]=0
+print(y_class.shape)
 
 AUC=roc_auc_score(y_class, y_hat)
 precision, recall, thresholds = precision_recall_curve(y_class, y_hat)

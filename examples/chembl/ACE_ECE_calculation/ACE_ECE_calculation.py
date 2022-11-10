@@ -2,6 +2,7 @@
 import sparsechem as sc
 import numpy as np
 import argparse
+import scipy.sparse
 
 parser = argparse.ArgumentParser(description="Obtaining Histograms for Probability Calibration for singular Taget")
 parser.add_argument("--y_class", "--y", "--y_classification", help="Sparse pattern file for classification, optional. If provided returns predictions for given locations only (matrix market, .npy or .npz)", type=str, default=None)
@@ -15,6 +16,9 @@ args = parser.parse_args()
 TargetID=args.targetID
 y_class = sc.load_sparse(args.y_class)
 y_hat  = sc.load_sparse(args.y_hat)
+#y_hat=scipy.sparse.csr_matrix(np.load(args.y_hat))
+print(y_class.shape)
+print(y_hat.shape)
 
 #select correct fold for class dataset
 folding = np.load(args.folding) if args.folding else None
@@ -22,17 +26,19 @@ keep    = np.isin(folding, args.predict_fold)
 y_class = sc.keep_row_data(y_class, keep) 
 
 #Sparse matrix of csc file
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-y_hat_TargetID=y_hat.T.tocsc()
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#y_hat_TargetID=y_hat.T.tocsc()
+y_hat_TargetID=y_hat.tocsc()
 y_class=y_class.tocsc()
 print(y_hat_TargetID.shape, y_class.shape)
+
 
 #specify Target and selecting nonzero values
 #y_hat_TargetID=y_hat[:, TargetID]
 y_class_TargetID=y_class[:, TargetID]
+y_hat_TargetID=y_hat[:,TargetID]
+print(y_class_TargetID.shape, y_hat_TargetID)
 
-y_hat_selected=y_hat_TargetID[np.nonzero(y_hat_TargetID)] 
+y_hat_selected=y_hat_TargetID[np.nonzero(y_class_TargetID)] 
 y_class_selected=y_class_TargetID[np.nonzero(y_class_TargetID)]
 
 print(y_hat_selected.shape, y_class_selected.shape)

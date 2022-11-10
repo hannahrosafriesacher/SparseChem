@@ -94,7 +94,7 @@ for hidden_size in range(len(hidden_sizes)):
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-        #print('running loss: ', running_loss/(X_train.size()[0]/batch_size))
+        print('running loss: ', running_loss/(X_train.size()[0]/batch_size))
         hidden_size_loss.append(running_loss)
 
     print('------------hiddenSize-----------:', hidden_sizes[hidden_size])
