@@ -4,7 +4,7 @@ from unittest import TestSuite
 import sparsechem as sc
 import numpy as np
 import os
-boolean=np.load('/home/rosa/git/SparseChem/examples/chembl/predictions/SelectedTargets_5ActivesInactives/BooleanArray_TargetsWithMoreThan5ActivesInactivesInEachFold.npy').tolist()
+#boolean=np.load('/home/rosa/git/SparseChem/examples/chembl/predictions/SelectedTargets_5ActivesInactives/BooleanArray_TargetsWithMoreThan5ActivesInactivesInEachFold.npy').tolist()
 
 print('load_file------------')
 AUC_list=[]
@@ -19,13 +19,13 @@ keep    = np.isin(folding, 0)
 y_class = sc.keep_row_data(y_class, keep) 
 
 #load list of file name of small models
-list_files_SM=os.listdir('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/repeats_bootstrap')
+list_files=os.listdir('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/ensemble_LM/50BaseEstimators')
 list_prediction_files=[]
 
 #loading prediction files to list
-for i in range(0, len(list_files_SM)):
-    print(list_files_SM[i])
-    current_file=sc.load_sparse('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/repeats_bootstrap/'+str(list_files_SM[i]))[:, boolean]
+for i in range(0, len(list_files)):
+    print(list_files[i])
+    current_file=sc.load_sparse('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/ensemble_LM/50BaseEstimators/'+str(list_files[i]))
     list_prediction_files.append(current_file.A)
     print(current_file.size)
 
@@ -38,7 +38,7 @@ for k in range(len(list_prediction_files)):
     cumm_pred_now+=list_prediction_files[k]
     print(cumm_pred_now.size, cumm_pred_now.shape)
 mean=cumm_pred_now/len(list_prediction_files)
-np.save('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/repeats_bootstrap/sc_bootstrap_100models_h1000_ldo0.9_wd0.0001_lr0.001_lrsteps10_ep20_fva1_fte0-class_TergetsWithMoreThan5InactivesActives.npy', mean)
+np.save('/home/rosa/git/SparseChem/examples/chembl/predictions/models_LM_adam/repeats_bootstrap/sc_bootstrap_50models_h2000_ldo0.7_wd1e-5_lr0.001_lrsteps10_ep20_fva1_fte0.npy', mean)
 
 
 
